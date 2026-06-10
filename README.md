@@ -1,6 +1,8 @@
-  ## Running the code
+  ## Rodar o código
 
-  Run `npm i` to install the dependencies.
+  Executar `npm install` para instalar todas a dependencias.
 
-  Run `npm run dev` to start the development server.
+  Executar `npm run dev` para inicializar o servidor.
+
+  Os comandos devem ser executados dentro da pasta backend e frontend.
   
