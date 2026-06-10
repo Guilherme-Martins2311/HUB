@@ -19,10 +19,10 @@ import {
 import { getEngagement } from "../api";
 
 const kpiData = [
-  { label: "Participações Totais", value: "3,456", icon: Users },
-  { label: "Média de Engajamento", value: "71.5%", icon: TrendingUp },
-  { label: "Empresas Ativas", value: "892", icon: Target },
-  { label: "Certificações", value: "234", icon: Award },
+  { label: "Participações Totais", value: "0", icon: Users },
+  { label: "Média de Engajamento", value: "0%", icon: TrendingUp },
+  { label: "Empresas Ativas", value: "0", icon: Target },
+  { label: "Certificações", value: "0", icon: Award },
 ];
 
 const engagementBySector = [
@@ -61,6 +61,7 @@ const topEngagement = [
 
 export function Engagement() {
   const [engagementData, setEngagementData] = useState<any>(null);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -69,11 +70,13 @@ export function Engagement() {
       .then((data) => {
         if (active) {
           setEngagementData(data);
+          setLoadError("");
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (active) {
           setEngagementData(null);
+          setLoadError(error instanceof Error ? error.message : "Falha ao carregar engajamento");
         }
       });
 
@@ -88,17 +91,17 @@ export function Engagement() {
         ...engagementData.kpis[index],
       }))
     : kpiData;
-  const dashboardEngagementBySector = engagementData?.engagementBySector ?? engagementBySector;
-  const dashboardGrowthData = engagementData?.growthData ?? growthData;
-  const dashboardParticipationByType = engagementData?.participationByType ?? participationByType;
-  const dashboardTopEngagement = engagementData?.topEngagement ?? topEngagement;
+  const dashboardEngagementBySector = engagementData?.engagementBySector ?? [];
+  const dashboardGrowthData = engagementData?.growthData ?? [];
+  const dashboardParticipationByType = engagementData?.participationByType ?? [];
+  const dashboardTopEngagement = engagementData?.topEngagement ?? [];
 
   return (
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Engajamento</h1>
         <p className="text-gray-500 mt-1">
-          Análise detalhada de participação e engajamento empresarial
+          {loadError ? "API indisponivel para carregar os dados de engajamento" : "Análise detalhada de participação e engajamento empresarial"}
         </p>
       </div>
 
@@ -229,3 +232,4 @@ export function Engagement() {
     </div>
   );
 }
+

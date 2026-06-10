@@ -126,7 +126,8 @@ const initialForm = {
 };
 
 export function Companies() {
-  const [companiesData, setCompaniesData] = useState<any[]>(fallbackCompanies);
+  const [companiesData, setCompaniesData] = useState<any[]>([]);
+  const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -151,11 +152,13 @@ export function Companies() {
       .then((data) => {
         if (active && Array.isArray(data)) {
           setCompaniesData(data);
+          setLoadError("");
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (active) {
-          setCompaniesData(fallbackCompanies);
+          setCompaniesData([]);
+          setLoadError(error instanceof Error ? error.message : "Falha ao carregar empresas");
         }
       })
       .finally(() => {
@@ -319,6 +322,11 @@ export function Companies() {
           </div>
 
           <div className="flex flex-wrap gap-2 mt-4">
+            {loadError && (
+              <span className="px-3 py-1 bg-red-50 text-red-600 rounded-full text-sm">
+                API indisponivel
+              </span>
+            )}
             <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm">
               {filteredCompanies.length} empresa(s)
             </span>

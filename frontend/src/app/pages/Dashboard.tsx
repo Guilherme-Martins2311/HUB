@@ -30,28 +30,28 @@ import { getDashboard } from "../api";
 const kpiData = [
   {
     label: "Total de Empresas",
-    value: "1,247",
+    value: "0",
     change: "+12%",
     trend: "up",
     icon: Building2,
   },
   {
     label: "Empresas Engajadas",
-    value: "892",
+    value: "0",
     change: "+8%",
     trend: "up",
     icon: Users,
   },
   {
     label: "Participações Totais",
-    value: "3,456",
+    value: "0",
     change: "+23%",
     trend: "up",
     icon: TrendingUp,
   },
   {
     label: "Taxa de Engajamento",
-    value: "71.5%",
+    value: "0%",
     change: "-2%",
     trend: "down",
     icon: BarChart3,
@@ -106,6 +106,7 @@ const syndicates = [
 
 export function Dashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loadError, setLoadError] = useState("");
   const [period, setPeriod] = useState<"all" | "30d">("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState({
@@ -127,11 +128,13 @@ export function Dashboard() {
       .then((data) => {
         if (active) {
           setDashboardData(data);
+          setLoadError("");
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (active) {
           setDashboardData(null);
+          setLoadError(error instanceof Error ? error.message : "Falha ao carregar dashboard");
         }
       });
 
@@ -159,15 +162,15 @@ export function Dashboard() {
         ...dashboardData.kpis[index],
       }))
     : kpiData;
-  const dashboardSectors = dashboardData?.sectors ?? sectors;
-  const dashboardSyndicates = dashboardData?.syndicates ?? syndicates;
-  const dashboardEngagementByPillar = dashboardData?.engagementByPillar ?? engagementByPillar;
-  const dashboardParticipationOverTime = dashboardData?.participationOverTime ?? participationOverTime;
-  const dashboardTopCompanies = dashboardData?.topCompanies ?? topCompanies;
+  const dashboardSectors = dashboardData?.sectors ?? [];
+  const dashboardSyndicates = dashboardData?.syndicates ?? [];
+  const dashboardEngagementByPillar = dashboardData?.engagementByPillar ?? [];
+  const dashboardParticipationOverTime = dashboardData?.participationOverTime ?? [];
+  const dashboardTopCompanies = dashboardData?.topCompanies ?? [];
   const availableFilters = dashboardData?.availableFilters ?? {
-    sectors: sectors,
-    regions: ["Plano Piloto", "Guara", "Nucleo Bandeirante", "Taguatinga", "Ceilandia"],
-    statuses: ["Ativa", "Em Risco", "Inativa", "Dados insuficientes"],
+    sectors: [],
+    regions: [],
+    statuses: [],
   };
 
   const periodLabel = period === "30d" ? "Últimos 30 dias" : "Todos os dados";
@@ -240,7 +243,11 @@ export function Dashboard() {
             <p className="text-sm text-gray-500">{filterSummary}</p>
           </div>
           <div className="text-sm text-gray-500">
-            {dashboardData?.totals ? `${dashboardData.totals.totalCompanies} empresa(s) no recorte` : "Carregando dados..."}
+            {loadError
+              ? "API indisponivel"
+              : dashboardData?.totals
+                ? `${dashboardData.totals.totalCompanies} empresa(s) no recorte`
+                : "Carregando dados..."}
           </div>
         </div>
 
@@ -508,7 +515,7 @@ export function Dashboard() {
                 Mapa Interativo de Empresas
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                1,247 empresas mapeadas
+                {dashboardData?.totals?.totalCompanies ?? 0} empresas mapeadas
               </p>
             </div>
           </div>

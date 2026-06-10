@@ -1,18 +1,15 @@
 const {
   getCompanyById,
   getCompanySummaries,
-  getCompanySummary,
-  getRecentParticipationHistory,
-  getEngagementHistory,
-  getInsightCards,
+  getCompanyProfile,
   createCompany,
-  upsertCompany,
+  updateCompany,
   deleteCompany,
-} = require('../data/hubData');
+} = require('../data/dbHubData');
 
 const listarEmpresas = async (req, res) => {
   try {
-    res.json(getCompanySummaries());
+    res.json(await getCompanySummaries());
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao buscar empresas', detalhe: err.message });
   }
@@ -20,9 +17,9 @@ const listarEmpresas = async (req, res) => {
 
 const buscarEmpresa = async (req, res) => {
   try {
-    const company = getCompanyById(req.params.id);
-    if (!company) return res.status(404).json({ erro: 'Empresa não encontrada' });
-    res.json(getCompanySummary(company));
+    const company = await getCompanyById(req.params.id);
+    if (!company) return res.status(404).json({ erro: 'Empresa nao encontrada' });
+    res.json(company);
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao buscar empresa', detalhe: err.message });
   }
@@ -30,16 +27,9 @@ const buscarEmpresa = async (req, res) => {
 
 const buscarPerfilEmpresa = async (req, res) => {
   try {
-    const company = getCompanyById(req.params.id);
-    if (!company) return res.status(404).json({ erro: 'Empresa não encontrada' });
-
-    const summary = getCompanySummary(company);
-    res.json({
-      ...summary,
-      engagementHistory: getEngagementHistory(company.id),
-      participationHistory: getRecentParticipationHistory(company.id),
-      insights: getInsightCards(company),
-    });
+    const company = await getCompanyProfile(req.params.id);
+    if (!company) return res.status(404).json({ erro: 'Empresa nao encontrada' });
+    res.json(company);
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao buscar perfil da empresa', detalhe: err.message });
   }
@@ -47,8 +37,8 @@ const buscarPerfilEmpresa = async (req, res) => {
 
 const criarEmpresa = async (req, res) => {
   try {
-    const company = createCompany(req.body);
-    res.status(201).json(getCompanySummary(company));
+    const company = await createCompany(req.body);
+    res.status(201).json(company);
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao criar empresa', detalhe: err.message });
   }
@@ -56,9 +46,9 @@ const criarEmpresa = async (req, res) => {
 
 const atualizarEmpresa = async (req, res) => {
   try {
-    const company = upsertCompany(req.params.id, req.body);
-    if (!company) return res.status(404).json({ erro: 'Empresa não encontrada' });
-    res.json(getCompanySummary(company));
+    const company = await updateCompany(req.params.id, req.body);
+    if (!company) return res.status(404).json({ erro: 'Empresa nao encontrada' });
+    res.json(company);
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao atualizar empresa', detalhe: err.message });
   }
@@ -66,8 +56,8 @@ const atualizarEmpresa = async (req, res) => {
 
 const deletarEmpresa = async (req, res) => {
   try {
-    const removed = deleteCompany(req.params.id);
-    if (!removed) return res.status(404).json({ erro: 'Empresa não encontrada' });
+    const removed = await deleteCompany(req.params.id);
+    if (!removed) return res.status(404).json({ erro: 'Empresa nao encontrada' });
     res.json({ mensagem: 'Empresa removida com sucesso' });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao deletar empresa', detalhe: err.message });

@@ -38,6 +38,13 @@ const reportTypes = [
   },
 ];
 
+const reportIconMap: Record<string, typeof FileText> = {
+  FileText,
+  TrendingUp,
+  FileBarChart,
+  FileSpreadsheet,
+};
+
 const recentReports = [
   {
     name: "Relatório Mensal - Maio 2026",
@@ -125,7 +132,7 @@ export function Reports() {
 
       <div className="grid grid-cols-2 gap-6 mb-8">
         {dashboardReportTypes.map((report: any, index: number) => {
-          const Icon = report.icon;
+          const Icon = typeof report.icon === "string" ? reportIconMap[report.icon] ?? FileText : report.icon;
           return (
             <div
               key={index}

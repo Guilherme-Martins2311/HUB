@@ -1,8 +1,8 @@
-const { getReportsPayload } = require('../data/hubData');
+const { getReportsPayload } = require('../data/dbHubData');
 
 const listarRelatorios = async (req, res) => {
   try {
-    res.json(getReportsPayload());
+    res.json(await getReportsPayload());
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao buscar relatórios', detalhe: err.message });
   }
