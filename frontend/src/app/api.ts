@@ -38,6 +38,19 @@ export function createCompany(payload: Record<string, unknown>) {
   });
 }
 
+export function updateCompany(id: string | number, payload: Record<string, unknown>) {
+  return requestJson(`/api/companies/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteCompany(id: string | number) {
+  return requestJson(`/api/companies/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export function getCompanyProfile(id: string | number) {
   return requestJson(`/api/companies/${id}/profile`);
 }
@@ -58,5 +71,12 @@ export function updateSetting(key: string, value: unknown) {
   return requestJson(`/api/settings/${key}`, {
     method: 'PUT',
     body: JSON.stringify({ value }),
+  });
+}
+
+export function createUser(payload: Record<string, unknown>) {
+  return requestJson('/api/settings/users', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   });
 }

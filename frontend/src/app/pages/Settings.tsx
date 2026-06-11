@@ -9,13 +9,13 @@ import {
   X,
 } from "lucide-react";
 
-import { getSettings, updateSetting } from "../api";
+import { createUser, getSettings, updateSetting } from "../api";
 
 const users = [
-  { name: "Admin User", email: "admin@fiep.com.br", role: "Administrador" },
+  { name: "Admin User", email: "admin@fiep.com.br", role: "Gestor" },
   { name: "João Silva", email: "joao.silva@fiep.com.br", role: "Analista" },
   { name: "Maria Santos", email: "maria.santos@fiep.com.br", role: "Analista" },
-  { name: "Carlos Oliveira", email: "carlos@fiep.com.br", role: "Visualizador" },
+  { name: "Carlos Oliveira", email: "carlos@fiep.com.br", role: "Consultor" },
 ];
 
 const notificationDefaults = [
@@ -27,6 +27,7 @@ const notificationDefaults = [
 const userFormInitialState = {
   name: "",
   email: "",
+  password: "",
   role: "Analista",
 };
 
@@ -75,16 +76,13 @@ export function Settings() {
     setSavingUser(true);
 
     try {
-      const nextUsers = [
-        ...dashboardUsers,
-        {
-          name: userForm.name,
-          email: userForm.email,
-          role: userForm.role,
-        },
-      ];
-
-      await updateSetting("users", nextUsers);
+      await createUser({
+        name: userForm.name,
+        email: userForm.email,
+        password: userForm.password,
+        role: userForm.role,
+        position: userForm.role,
+      });
       const refreshed = await getSettings();
       setSettingsData(refreshed);
       setUserForm(userFormInitialState);
@@ -317,15 +315,27 @@ export function Settings() {
               </label>
 
               <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
+                Senha
+                <input
+                  type="password"
+                  value={userForm.password}
+                  onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))}
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 outline-none focus:border-blue-500"
+                  required
+                />
+              </label>
+
+              <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
                 Função
                 <select
                   value={userForm.role}
                   onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}
                   className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 outline-none focus:border-blue-500"
                 >
-                  <option value="Administrador">Administrador</option>
+                  <option value="Gestor">Gestor</option>
                   <option value="Analista">Analista</option>
-                  <option value="Visualizador">Visualizador</option>
+                  <option value="Consultor">Consultor</option>
+                  <option value="Diretor">Diretor</option>
                 </select>
               </label>
 
@@ -352,3 +362,4 @@ export function Settings() {
     </div>
   );
 }
+

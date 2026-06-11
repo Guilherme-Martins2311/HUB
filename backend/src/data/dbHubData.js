@@ -1,10 +1,10 @@
 const pool = require('../config/db');
 
 const TABLE_CANDIDATES = {
-  companies: ['companies', 'empresas'],
-  events: ['events', 'eventos'],
-  participations: ['participations', 'participacoes'],
-  users: ['users', 'usuarios'],
+  companies: ['EMPRESA', 'companies', 'empresas'],
+  events: ['EVENTO', 'events', 'eventos'],
+  participations: ['PARTICIPACAO', 'participations', 'participacoes'],
+  users: ['USUARIO', 'users', 'usuarios'],
   notifications: ['notifications', 'notificacoes'],
   settings: ['settings', 'configuracoes'],
   reports: ['reports', 'relatorios'],
@@ -46,6 +46,10 @@ function getFirst(row, keys, fallback = '') {
   }
 
   return fallback;
+}
+
+function getPrimaryKeyColumn(columns, candidates) {
+  return pickColumn(columns, candidates) || pickColumn(columns, ['id']) || columns[0];
 }
 
 function escapeId(identifier) {
@@ -124,6 +128,36 @@ function toBoolean(value) {
   return value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true';
 }
 
+function normalizeUserType(value) {
+  const role = normalizeText(value) || 'Analista';
+  const normalized = role.toLowerCase();
+
+  if (normalized.includes('gest') || normalized.includes('admin')) return 'Gestor';
+  if (normalized.includes('consult') || normalized.includes('visual')) return 'Consultor';
+  if (normalized.includes('diret')) return 'Diretor';
+  return 'Analista';
+}
+
+function normalizeCompanySize(value) {
+  const size = normalizeText(value) || 'Pequena empresa';
+  const normalized = size.toLowerCase();
+
+  if (normalized.includes('micro')) return 'Microempresa';
+  if (normalized.includes('média') || normalized.includes('media')) return 'Média empresa';
+  if (normalized.includes('grande')) return 'Grande empresa';
+  return 'Pequena empresa';
+}
+
+function normalizeCompanyType(value) {
+  const type = normalizeText(value) || 'Indústria';
+  const normalized = type.toLowerCase();
+
+  if (normalized.includes('startup')) return 'Startup';
+  if (normalized.includes('governo')) return 'Governo';
+  if (normalized.includes('academia')) return 'Academia';
+  return 'Indústria';
+}
+
 function formatDate(value) {
   if (!value) {
     return '';
@@ -138,25 +172,25 @@ function formatDate(value) {
 
 function mapCompany(row) {
   return {
-    id: Number(getFirst(row, ['id', 'companyId', 'empresaId'])),
+    id: Number(getFirst(row, ['id', 'idEmpresa', 'companyId', 'empresaId'])),
     name: normalizeText(getFirst(row, ['name', 'nome', 'nomeFantasia', 'fantasyName', 'razaoSocial'])),
     legalName: normalizeText(getFirst(row, ['legalName', 'razaoSocial', 'corporateName', 'nomeEmpresarial'])),
     cnpj: normalizeText(getFirst(row, ['cnpj'])),
     cep: normalizeText(getFirst(row, ['cep', 'zipCode'])),
     cnae: normalizeText(getFirst(row, ['cnae'])),
     address: normalizeText(getFirst(row, ['address', 'endereco', 'logradouro'])),
-    region: normalizeText(getFirst(row, ['region', 'regiao', 'cidade', 'territorio'])),
-    contact: normalizeText(getFirst(row, ['contact', 'contato', 'responsavel'])),
+    region: normalizeText(getFirst(row, ['region', 'regiaoAdministrativa', 'regiao', 'cidade', 'territorio'])),
+    contact: normalizeText(getFirst(row, ['contact', 'contatoNaEmpresa', 'contato', 'responsavel'])),
     manager: normalizeText(getFirst(row, ['manager', 'responsavel', 'gestor', 'contact', 'contato'])),
     phone: normalizeText(getFirst(row, ['phone', 'telefone', 'celular'])),
     email: normalizeText(getFirst(row, ['email'])),
     sector: normalizeText(getFirst(row, ['sector', 'setor', 'segmento'])),
     size: normalizeText(getFirst(row, ['size', 'porte'], 'Pequena empresa')),
     companyType: normalizeText(getFirst(row, ['companyType', 'tipoEmpresa', 'tipo'], 'Industria')),
-    employees: Number(getFirst(row, ['employees', 'funcionarios', 'colaboradores'], 0)),
+    employees: Number(getFirst(row, ['employees', 'numFuncionarios', 'funcionarios', 'colaboradores'], 0)),
     ledByWoman: toBoolean(getFirst(row, ['ledByWoman', 'lideradaPorMulher'], false)),
-    unionMember: toBoolean(getFirst(row, ['unionMember', 'associadaSindicato', 'sindicato'], false)),
-    maturity: normalizeText(getFirst(row, ['maturity', 'maturidade'], 'Inicial')),
+    unionMember: toBoolean(getFirst(row, ['unionMember', 'associacaoSindicato', 'associadaSindicato', 'sindicato'], false)),
+    maturity: normalizeText(getFirst(row, ['maturity', 'nivelMaturidade', 'maturidade'], 'Inicial')),
     registeredAt: formatDate(getFirst(row, ['registeredAt', 'createdAt', 'dataCadastro', 'cadastro'])),
   };
 }
@@ -449,8 +483,8 @@ async function createCompany(data) {
     phone: normalizeText(data.phone),
     email: normalizeText(data.email),
     sector: normalizeText(data.sector),
-    size: data.size || 'Pequena empresa',
-    companyType: data.companyType || 'Industria',
+    size: normalizeCompanySize(data.size),
+    companyType: normalizeCompanyType(data.companyType),
     employees: Number(data.employees || 0),
     ledByWoman: toBoolean(data.ledByWoman),
     unionMember: toBoolean(data.unionMember),
@@ -464,18 +498,18 @@ async function createCompany(data) {
     cep: ['cep', 'zip_code', 'zipCode'],
     cnae: ['cnae'],
     address: ['address', 'endereco', 'logradouro'],
-    region: ['region', 'regiao', 'cidade', 'territorio'],
-    contact: ['contact', 'contato'],
+    region: ['region', 'regiao_administrativa', 'regiaoAdministrativa', 'regiao', 'cidade', 'territorio'],
+    contact: ['contact', 'contato_na_empresa', 'contatoNaEmpresa', 'contato'],
     manager: ['manager', 'responsavel', 'gestor'],
     phone: ['phone', 'telefone', 'celular'],
     email: ['email'],
     sector: ['sector', 'setor', 'segmento'],
     size: ['size', 'porte'],
     companyType: ['company_type', 'companyType', 'tipo_empresa', 'tipoEmpresa', 'tipo'],
-    employees: ['employees', 'funcionarios', 'colaboradores'],
+    employees: ['employees', 'num_funcionarios', 'numFuncionarios', 'funcionarios', 'colaboradores'],
     ledByWoman: ['led_by_woman', 'ledByWoman', 'liderada_por_mulher', 'lideradaPorMulher'],
-    unionMember: ['union_member', 'unionMember', 'associada_sindicato', 'associadaSindicato', 'sindicato'],
-    maturity: ['maturity', 'maturidade'],
+    unionMember: ['union_member', 'unionMember', 'associacao_sindicato', 'associacaoSindicato', 'associada_sindicato', 'associadaSindicato', 'sindicato'],
+    maturity: ['maturity', 'nivel_maturidade', 'nivelMaturidade', 'maturidade'],
     registeredAt: ['registered_at', 'registeredAt', 'created_at', 'createdAt', 'data_cadastro', 'dataCadastro'],
   }, normalized);
   const columns = Object.keys(payload);
@@ -512,8 +546,8 @@ async function updateCompany(companyId, data) {
     phone: data.phone,
     email: data.email,
     sector: data.sector,
-    size: data.size,
-    companyType: data.companyType,
+    size: data.size === undefined ? undefined : normalizeCompanySize(data.size),
+    companyType: data.companyType === undefined ? undefined : normalizeCompanyType(data.companyType),
     employees: data.employees,
     ledByWoman: data.ledByWoman,
     unionMember: data.unionMember,
@@ -527,25 +561,26 @@ async function updateCompany(companyId, data) {
     cep: ['cep', 'zip_code', 'zipCode'],
     cnae: ['cnae'],
     address: ['address', 'endereco', 'logradouro'],
-    region: ['region', 'regiao', 'cidade', 'territorio'],
-    contact: ['contact', 'contato'],
+    region: ['region', 'regiao_administrativa', 'regiaoAdministrativa', 'regiao', 'cidade', 'territorio'],
+    contact: ['contact', 'contato_na_empresa', 'contatoNaEmpresa', 'contato'],
     manager: ['manager', 'responsavel', 'gestor'],
     phone: ['phone', 'telefone', 'celular'],
     email: ['email'],
     sector: ['sector', 'setor', 'segmento'],
     size: ['size', 'porte'],
     companyType: ['company_type', 'companyType', 'tipo_empresa', 'tipoEmpresa', 'tipo'],
-    employees: ['employees', 'funcionarios', 'colaboradores'],
+    employees: ['employees', 'num_funcionarios', 'numFuncionarios', 'funcionarios', 'colaboradores'],
     ledByWoman: ['led_by_woman', 'ledByWoman', 'liderada_por_mulher', 'lideradaPorMulher'],
-    unionMember: ['union_member', 'unionMember', 'associada_sindicato', 'associadaSindicato', 'sindicato'],
-    maturity: ['maturity', 'maturidade'],
+    unionMember: ['union_member', 'unionMember', 'associacao_sindicato', 'associacaoSindicato', 'associada_sindicato', 'associadaSindicato', 'sindicato'],
+    maturity: ['maturity', 'nivel_maturidade', 'nivelMaturidade', 'maturidade'],
     registeredAt: ['registered_at', 'registeredAt', 'created_at', 'createdAt', 'data_cadastro', 'dataCadastro'],
   }, normalized);
   const entries = Object.entries(payload).filter(([, value]) => value !== undefined);
   if (!entries.length) return getCompanyById(companyId);
+  const primaryKey = getPrimaryKeyColumn(await getTableColumns(tables.companies), ['id_empresa', 'idEmpresa', 'company_id', 'companyId']);
 
   await pool.query(
-    `UPDATE ${escapeId(tables.companies)} SET ${entries.map(([key]) => `${escapeId(key)} = ?`).join(', ')} WHERE id = ?`,
+    `UPDATE ${escapeId(tables.companies)} SET ${entries.map(([key]) => `${escapeId(key)} = ?`).join(', ')} WHERE ${escapeId(primaryKey)} = ?`,
     [...entries.map(([, value]) => value), companyId],
   );
 
@@ -558,8 +593,35 @@ async function deleteCompany(companyId) {
     throw new Error('Tabela de empresas nao encontrada no banco de dados.');
   }
 
-  const [result] = await pool.query(`DELETE FROM ${escapeId(tables.companies)} WHERE id = ?`, [companyId]);
-  return result.affectedRows > 0;
+  const primaryKey = getPrimaryKeyColumn(await getTableColumns(tables.companies), ['id_empresa', 'idEmpresa', 'company_id', 'companyId']);
+  const [relatedTables] = await pool.query(
+    'SELECT table_name AS tableName FROM information_schema.columns WHERE table_schema = DATABASE() AND column_name = ? AND table_name <> ?',
+    [primaryKey, tables.companies],
+  );
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    for (const row of relatedTables) {
+      await connection.query(
+        `DELETE FROM ${escapeId(row.tableName)} WHERE ${escapeId(primaryKey)} = ?`,
+        [companyId],
+      );
+    }
+
+    const [result] = await connection.query(
+      `DELETE FROM ${escapeId(tables.companies)} WHERE ${escapeId(primaryKey)} = ?`,
+      [companyId],
+    );
+    await connection.commit();
+    return result.affectedRows > 0;
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
 }
 
 async function getDashboardPayload(query = {}) {
@@ -683,12 +745,76 @@ async function getSettingsPayload() {
       enabled: toBoolean(getFirst(item, ['enabled', 'ativo'], false)),
     })),
     users: users.map((item) => ({
+      id: Number(getFirst(item, ['idUsuario', 'id', 'usuarioId'], 0)),
       name: normalizeText(getFirst(item, ['name', 'nome'])),
       email: normalizeText(getFirst(item, ['email'])),
-      role: normalizeText(getFirst(item, ['role', 'perfil', 'funcao'], 'Analista')),
+      role: normalizeUserType(getFirst(item, ['tipoUsuario', 'role', 'perfil', 'funcao', 'cargo'], 'Analista')),
+      position: normalizeText(getFirst(item, ['cargo', 'position'], '')),
     })),
     support: { email: 'suporte@crmindstrial.com.br' },
   };
+}
+
+async function getUserById(userId) {
+  const tables = await getTableMap();
+  if (!tables.users) {
+    throw new Error('Tabela de usuarios nao encontrada no banco de dados.');
+  }
+
+  const columns = await getTableColumns(tables.users);
+  const primaryKey = getPrimaryKeyColumn(columns, ['id_usuario', 'idUsuario', 'user_id', 'userId']);
+  const [rows] = await pool.query(
+    `SELECT * FROM ${escapeId(tables.users)} WHERE ${escapeId(primaryKey)} = ? LIMIT 1`,
+    [userId],
+  );
+  const row = rows[0] ? normalizeRow(rows[0]) : null;
+  if (!row) return null;
+
+  return {
+    id: Number(getFirst(row, ['idUsuario', 'id', 'usuarioId'], 0)),
+    name: normalizeText(getFirst(row, ['name', 'nome'])),
+    email: normalizeText(getFirst(row, ['email'])),
+    role: normalizeUserType(getFirst(row, ['tipoUsuario', 'role', 'perfil', 'funcao', 'cargo'], 'Analista')),
+    position: normalizeText(getFirst(row, ['cargo', 'position'], '')),
+  };
+}
+
+async function createUser(data) {
+  const tables = await getTableMap();
+  if (!tables.users) {
+    throw new Error('Tabela de usuarios nao encontrada no banco de dados.');
+  }
+
+  const normalized = {
+    name: normalizeText(data.name),
+    email: normalizeText(data.email),
+    password: normalizeText(data.password || data.senha),
+    position: normalizeText(data.position || data.cargo || data.role),
+    role: normalizeUserType(data.role || data.tipoUsuario),
+  };
+
+  if (!normalized.name || !normalized.email || !normalized.password) {
+    throw new Error('Nome, e-mail e senha sao obrigatorios para cadastrar usuario.');
+  }
+
+  const payload = await buildDbPayload(tables.users, {
+    name: ['nome', 'name'],
+    email: ['email'],
+    password: ['senha', 'password'],
+    position: ['cargo', 'position'],
+    role: ['tipo_usuario', 'tipoUsuario', 'role', 'perfil'],
+  }, normalized);
+  const columns = Object.keys(payload);
+  if (!columns.length) {
+    throw new Error('Nenhuma coluna compativel encontrada para cadastrar usuario.');
+  }
+
+  const [result] = await pool.query(
+    `INSERT INTO ${escapeId(tables.users)} (${columns.map(escapeId).join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`,
+    Object.values(payload),
+  );
+
+  return getUserById(result.insertId);
 }
 
 async function updateSetting(key, value) {
@@ -710,7 +836,8 @@ async function updateSetting(key, value) {
       ? {
           name: ['name', 'nome'],
           email: ['email'],
-          role: ['role', 'perfil', 'funcao', 'funcao_usuario'],
+          role: ['tipo_usuario', 'tipoUsuario', 'role', 'perfil', 'funcao', 'funcao_usuario'],
+          position: ['cargo', 'position'],
         }
       : {
           key: ['key', 'chave'],
@@ -718,7 +845,7 @@ async function updateSetting(key, value) {
           enabled: ['enabled', 'ativo', 'habilitado'],
         };
     const normalized = key === 'users'
-      ? { name: row.name, email: row.email, role: row.role }
+      ? { name: row.name, email: row.email, role: normalizeUserType(row.role), position: row.position || row.role }
       : { key: row.key, label: row.label, enabled: toBoolean(row.enabled) };
     const payload = await buildDbPayload(table, aliases, normalized);
     const columns = Object.keys(payload);
@@ -769,6 +896,7 @@ module.exports = {
   getAlertsPayload,
   getRecommendationsPayload,
   getSettingsPayload,
+  createUser,
   updateSetting,
   getReportsPayload,
 };

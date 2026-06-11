@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Filter, Download, Plus, Eye, X } from "lucide-react";
+import { Search, Filter, Download, Plus, Eye, X, Pencil, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 
-import { createCompany, getCompanies } from "../api";
+import { createCompany, deleteCompany as deleteCompanyRequest, getCompanies, updateCompany } from "../api";
 
 const fallbackCompanies = [
   {
@@ -142,6 +142,9 @@ export function Companies() {
   const [pageSize] = useState(5);
   const [createOpen, setCreateOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [editingCompanyId, setEditingCompanyId] = useState<number | string | null>(null);
+  const [deletingCompanyId, setDeletingCompanyId] = useState<number | string | null>(null);
   const [formData, setFormData] = useState(initialForm);
 
   useEffect(() => {
@@ -236,27 +239,96 @@ export function Companies() {
     setFiltersOpen(false);
   };
 
-  const handleCreateCompany = async (event: React.FormEvent<HTMLFormElement>) => {
+  const refreshCompanies = async () => {
+    const refreshed = await getCompanies();
+    if (Array.isArray(refreshed)) {
+      setCompaniesData(refreshed);
+    }
+  };
+
+  const buildFormFromCompany = (company: any) => ({
+    name: company.name ?? "",
+    legalName: company.legalName ?? "",
+    cnpj: company.cnpj ?? "",
+    cep: company.cep ?? "",
+    cnae: company.cnae ?? "",
+    address: company.address ?? "",
+    region: company.region ?? "",
+    contact: company.contact ?? "",
+    manager: company.manager ?? "",
+    phone: company.phone ?? "",
+    email: company.email ?? "",
+    sector: company.sector ?? "",
+    size: company.size ?? "Pequena empresa",
+    companyType: company.companyType ?? "Industria",
+    employees: String(company.employees ?? ""),
+    ledByWoman: Boolean(company.ledByWoman),
+    unionMember: Boolean(company.unionMember),
+    maturity: company.maturity ?? "Inicial",
+    registeredAt: company.registeredAt ? String(company.registeredAt).slice(0, 10) : new Date().toISOString().slice(0, 10),
+  });
+
+  const handleOpenCreate = () => {
+    setEditingCompanyId(null);
+    setFormData(initialForm);
+    setCreateError("");
+    setCreateOpen(true);
+  };
+
+  const handleOpenEdit = (company: any) => {
+    setEditingCompanyId(company.id);
+    setFormData(buildFormFromCompany(company));
+    setCreateError("");
+    setCreateOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setCreateOpen(false);
+    setEditingCompanyId(null);
+    setFormData(initialForm);
+    setCreateError("");
+  };
+
+  const handleSubmitCompany = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
+    setCreateError("");
 
     try {
-      await createCompany({
+      const payload = {
         ...formData,
         employees: Number(formData.employees || 0),
         ledByWoman: Boolean(formData.ledByWoman),
         unionMember: Boolean(formData.unionMember),
-      });
+      };
 
-      const refreshed = await getCompanies();
-      if (Array.isArray(refreshed)) {
-        setCompaniesData(refreshed);
+      if (editingCompanyId) {
+        await updateCompany(editingCompanyId, payload);
+      } else {
+        await createCompany(payload);
       }
 
-      setFormData(initialForm);
-      setCreateOpen(false);
+      await refreshCompanies();
+      handleCloseModal();
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "Erro ao salvar empresa");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteCompany = async (company: any) => {
+    const confirmed = window.confirm(`Excluir a empresa "${company.name}"? Esta acao nao pode ser desfeita.`);
+    if (!confirmed) return;
+
+    setDeletingCompanyId(company.id);
+    try {
+      await deleteCompanyRequest(company.id);
+      await refreshCompanies();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Erro ao excluir empresa");
+    } finally {
+      setDeletingCompanyId(null);
     }
   };
 
@@ -584,6 +656,12 @@ export function Companies() {
                 <X className="h-5 w-5" />
               </button>
             </div>
+
+            {createError && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {createError}
+              </div>
+            )}
 
             <form className="grid gap-4 md:grid-cols-2" onSubmit={handleCreateCompany}>
               {[

@@ -1,4 +1,4 @@
-const { getSettingsPayload, updateSetting } = require('./data/dbHubData');
+const { getSettingsPayload, createUser, updateSetting } = require('./data/dbHubData');
 
 async function getConfiguracoes(req, res) {
   try {
@@ -23,4 +23,14 @@ async function atualizarConfiguracao(req, res) {
   }
 }
 
-module.exports = { getConfiguracoes, atualizarConfiguracao };
+async function cadastrarUsuario(req, res) {
+  try {
+    const user = await createUser(req.body);
+    res.status(201).json(user);
+  } catch (err) {
+    const status = err.message.includes('obrigatorios') ? 400 : 500;
+    res.status(status).json({ erro: 'Erro ao cadastrar usuario', detalhe: err.message });
+  }
+}
+
+module.exports = { getConfiguracoes, atualizarConfiguracao, cadastrarUsuario };
